@@ -22,7 +22,7 @@ public class DeployFileDelegate implements JavaDelegate {
         String fileName = "user1Task1.bpmn";
 
         MultiValueMap<String, Object> requestMap = new LinkedMultiValueMap<>();
-        requestMap.add("deployment-name", "MyDeployment");
+        requestMap.add("deployment-name", "MyDeployment") ;
         requestMap.add("enable-duplicate-filtering", "true");
 
         // Replace the path with the location of your BPMN file
