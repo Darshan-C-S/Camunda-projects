@@ -1,0 +1,4 @@
+com\vso\camunda\service\TMFService.class
+com\vso\camunda\service\ServiceOrderConsumer.class
+com\vso\camunda\CamundaKafkaConsumerApplication.class
+com\vso\camunda\config\KafkaConfiguration.class
