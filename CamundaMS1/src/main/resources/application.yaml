@@ -1,7 +1,12 @@
-server:
-  port: 8090
-
-
-camunda.bpm.admin-user:
-  id: demo
-  password: demo
+#spring.datasource.url: jdbc:h2:file:./camunda-h2-database
+#
+#camunda.bpm.admin-user:
+#  id: demo
+#  password: demo
+#
+#deploy:
+#  url: http://localhost:8080/engine-rest/deployment/create
+#  name: MyDeployment
+#  enableDuplicateFiltering: true
+#  filePath: C:\Users\Darshan CS-3121\Downloads\Loop_OrderItems-Tacker.bpmn
+#  fileName: HelloAll.bpmn
