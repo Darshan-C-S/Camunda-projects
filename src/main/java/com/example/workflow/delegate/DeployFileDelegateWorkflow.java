@@ -1,59 +1,46 @@
 package com.example.workflow.delegate;
 
-import org.apache.commons.io.IOUtils;
-import org.camunda.bpm.engine.TaskService;
+import org.camunda.bpm.engine.ProcessEngine;
+import org.camunda.bpm.engine.ProcessEngines;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
-import org.camunda.bpm.engine.task.Task;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import org.camunda.bpm.engine.delegate.JavaDelegate;
+import org.camunda.bpm.engine.repository.Deployment;
+import org.camunda.bpm.engine.repository.DeploymentBuilder;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
-public class DeployFileDelegateWorkflow {
-    @Value("${bpmn.filename}")
-    private String bpmnFilename;
 
-    public void execute(DelegateExecution execution) throws Exception {
+public class DeployFileDelegateWorkflow implements JavaDelegate {
+    public void execute(DelegateExecution execution) {
         try {
-            TaskService taskService = execution.getProcessEngineServices().getTaskService();
-            Task currentTask = taskService.createTaskQuery().processInstanceId(execution.getProcessInstanceId()).singleResult();
+            // Get the XML workflow from the process variable
+            String xmlWorkflow = (String) execution.getVariable("Output_Attachment_Xml_Workflow");
 
-            // Retrieve the BPMN model of the process definition containing both tasks
-            String processDefinitionId = currentTask.getProcessDefinitionId();
-            InputStream bpmnModelStream = execution.getProcessEngineServices().getRepositoryService().getProcessModel(processDefinitionId);
+            // Get the attachment name from the process variable
+            String attachmentName = (String) execution.getVariable("AttachmentName");
 
-            // Deploy the BPMN model using the REST API
-            RestTemplate restTemplate = new RestTemplate();
-            String deploymentUrl = "http://localhost:8090/engine-rest/deployment/create";
+            // Extract the filename without the extension
+            String filenameWithoutExtension = attachmentName.substring(0, attachmentName.lastIndexOf("."));
 
-            MultiValueMap<String, Object> requestMap = new LinkedMultiValueMap<>();
-            requestMap.add("deployment-name", "MyDeployment");
-            requestMap.add("enable-duplicate-filtering", "true");
+            // Deploy the XML workflow with the extracted filename
+            InputStream inputStream = new ByteArrayInputStream(xmlWorkflow.getBytes());
+            ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+            DeploymentBuilder deploymentBuilder = processEngine.getRepositoryService().createDeployment();
+            Deployment deployment = deploymentBuilder
+                    .addInputStream(filenameWithoutExtension + ".bpmn", inputStream)
+                    .deploy();
 
-            // Add the BPMN model as a file to the deployment request
-            byte[] bpmnBytes = IOUtils.toByteArray(bpmnModelStream);
-            requestMap.add("file", new ByteArrayResource(bpmnBytes) {
-                @Override
-                public String getFilename() {
-                    return bpmnFilename;
-                }
-            });
+            // Store the deployment ID for future reference if needed
+            String deploymentId = deployment.getId();
+            execution.setVariable("deploymentId", deploymentId);
 
-            restTemplate.postForLocation(deploymentUrl, requestMap);
-        } catch (RestClientException e) {
-            // Handle the REST client exception
-            // You can log the error or throw a custom exception, or perform any other error handling logic
-            e.printStackTrace();
-            throw new RuntimeException("Failed to deploy BPMN model: " + e.getMessage());
+            // Log deployment success or perform any other post-deployment actions
+            System.out.println("Workflow deployed successfully. Deployment ID: " + deploymentId);
         } catch (Exception e) {
-            // Handle other exceptions
-            // You can log the error or throw a custom exception, or perform any other error handling logic
+            // Handle deployment failure
             e.printStackTrace();
-            throw new RuntimeException("An error occurred during BPMN deployment: " + e.getMessage());
+            throw new RuntimeException("Failed to deploy workflow: " + e.getMessage());
         }
     }
 }
